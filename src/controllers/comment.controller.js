@@ -42,7 +42,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
   }
   return res
     .status(200)
-    .json(new ApiResponse(200, "Comments fetched successfully"));
+    .json(new ApiResponse(200, response, "Comments fetched successfully"));
 });
 
 const addComment = asyncHandler(async (req, res) => {
@@ -57,7 +57,7 @@ const addComment = asyncHandler(async (req, res) => {
   }
   const response = await Comment.create({
     content,
-    video: mongoose.Types.ObjectId(videoId), // Ensure it's an ObjectId
+    video: videoId,
     owner: req.user?._id, // from jwt middleware
   });
 
@@ -77,9 +77,12 @@ const updateComment = asyncHandler(async (req, res) => {
   if (!content.trim()) {
     throw new ApiError(400, "New comment is required");
   }
+  if (!mongoose.isValidObjectId(commentId)) {
+    throw new ApiError(400, "No comment found");
+  }
   const newComment = await Comment.findOneAndUpdate(
     {
-      _id: commentId,
+      _id: new mongoose.Types.ObjectId(commentId),
       owner: req.user?._id,
     },
     {
@@ -98,10 +101,13 @@ const updateComment = asyncHandler(async (req, res) => {
 // TODO: delete a comment
 const deleteComment = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
+  if (!mongoose.isValidObjectId(commentId)) {
+    throw new ApiError(400, "No comment found");
+  }
 
   // Attempt to delete the comment
   const deletedComment = await Comment.findOneAndDelete({
-    _id: commentId,
+    _id: new mongoose.Types.ObjectId(commentId),
     owner: req.user?._id, // Ensure the comment belongs to the authenticated user
   });
 
